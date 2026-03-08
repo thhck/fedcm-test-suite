@@ -197,3 +197,4 @@ const withOriginHeader = (options: any) => {
     }
   }
 }
+})
