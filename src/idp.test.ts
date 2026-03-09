@@ -1,15 +1,30 @@
+import 'dotenv/config'
 const idpHost = process.env.FEDCM_IDP_HOST || 'http://idp-1.localhost:8080';
 const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientID'
 const clientOrigin = process.env.FEDCM_CLIENT_ORIGIN || 'http://localhost:7080'
 export const authCookie = process.env.FEDCM_IDP_AUTH_COOKIE || "";
-console.log(`using auth cookie ${authCookie}`)
+console.log(`using host:          ${idpHost}`)
+console.log(`using clientOrigin:  ${clientOrigin}`)
+console.log(`using clientId:      ${clientId}`)
+console.log(`using auth cookie:   ${authCookie}`)
 
 describe('Identity Provider HTTP API', () => {
   const wellKnownUrl = `${idpHost}/.well-known/web-identity`;
 
   describe('the Well-Known file', () => {
     // manifests | cookies: no | client_id: no | origin: no
-    it('should return a IdentityProviderWellKnown JSON object', async () => {
+    it('should return a 200', async () => {
+      const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
+      expect(response.status).toBe(200);
+    })
+
+    it('should return `Content-Type: application/json`', async () => {
+      const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
+      
+      expect(response.headers.get('content-type')?.toLowerCase()).toContain('application/json') 
+    })
+    
+    it('should return a IdentityProviderWellKnown JSON object that contain a `provider_urls` array', async () => {
       const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
       const wellKnowConfig: IdentityProviderWellKnown = await response.json() as IdentityProviderWellKnown;
 
@@ -22,6 +37,12 @@ describe('Identity Provider HTTP API', () => {
       expect(response.status).toBe(400);
     });
 
+    it('should not have an empty `provider_urls` array', async () => {
+      const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
+      const wellKnowConfig: IdentityProviderWellKnown = await response.json() as IdentityProviderWellKnown;
+      expect(wellKnowConfig.provider_urls.length).toBeGreaterThan(0) 
+    });
+
     it('should return a valid provider url that returns a json file', async () => {
       const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
       const wellKnowConfig: IdentityProviderWellKnown = await response.json() as IdentityProviderWellKnown;
@@ -31,6 +52,8 @@ describe('Identity Provider HTTP API', () => {
       expect(response.status).toBe(200);
 
     });
+
+
   })
 
   describe('other endpoints', () => {
