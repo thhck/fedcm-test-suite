@@ -23,7 +23,7 @@ describe('Identity Provider HTTP API', () => {
       
       expect(response.headers.get('content-type')?.toLowerCase()).toContain('application/json') 
     })
-    
+
     it('should return a IdentityProviderWellKnown JSON object that contain a `provider_urls` array', async () => {
       const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
       const wellKnowConfig: IdentityProviderWellKnown = await response.json() as IdentityProviderWellKnown;
@@ -68,6 +68,25 @@ describe('Identity Provider HTTP API', () => {
 
     describe('the config file', () => {
       // config | cookies: no | client_id: no | origin: no
+      
+      it('should return a 200', async () => {
+        const response = await fetch(wellKnownConfig.provider_urls[0], withSecFetchHeader(baseRequestOptions));
+        expect(response.status).toBe(200);
+      })
+
+      it('should return `Content-Type: application/json`', async () => {
+        const response = await fetch(wellKnownConfig.provider_urls[0], withSecFetchHeader(baseRequestOptions));
+      
+        expect(response.headers.get('content-type')?.toLowerCase()).toContain('application/json') 
+      })
+
+
+      it('should return 400 when Sec-Fetch-Dest is not set', async () => {
+        const response = await fetch(wellKnownConfig.provider_urls[0], baseRequestOptions);
+
+        expect(response.status).toBe(400);
+      });
+      
       it('should return config file', async () => {
         const response = await fetch(wellKnownConfig.provider_urls[0], withSecFetchHeader(baseRequestOptions));
         idpApiConfig = await response.json() as IdentityProviderAPIConfig;
@@ -75,14 +94,15 @@ describe('Identity Provider HTTP API', () => {
         expect(idpApiConfig.accounts_endpoint).toEqual(expect.any(String));
         expect(idpApiConfig.client_metadata_endpoint).toEqual(expect.any(String));
         expect(idpApiConfig.id_assertion_endpoint).toEqual(expect.any(String));
-        expect(idpApiConfig.branding).toEqual(expect.any(Object));
+        expect(idpApiConfig.login_url).toEqual(expect.any(String));
+        // not required:
+        //expect(idpApiConfig.disconnect_endpoint).toEqual(expect.any(String));
+        // expect(idpApiConfig.branding).toEqual(expect.any(Object));
+
       });
 
-      it('should return 400 when Sec-Fetch-Dest is not set', async () => {
-        const response = await fetch(wellKnownConfig.provider_urls[0], baseRequestOptions);
+      // TODO check branding if exist
 
-        expect(response.status).toBe(400);
-      });
     })
 
     // The accounts list endpoint provides the list of accounts
