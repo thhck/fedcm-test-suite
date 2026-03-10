@@ -89,27 +89,39 @@ describe('Identity Provider HTTP API', () => {
       
       it('should return config file', async () => {
         const response = await fetch(wellKnownConfig.provider_urls[0], withSecFetchHeader(baseRequestOptions));
-        idpApiConfig = await response.json() as IdentityProviderAPIConfig;
+        const idpApiConfig = await response.json() as IdentityProviderAPIConfig;
 
         expect(idpApiConfig.accounts_endpoint).toEqual(expect.any(String));
-        expect(idpApiConfig.client_metadata_endpoint).toEqual(expect.any(String));
         expect(idpApiConfig.id_assertion_endpoint).toEqual(expect.any(String));
         expect(idpApiConfig.login_url).toEqual(expect.any(String));
         // not required:
+        // expect(idpApiConfig.client_metadata_endpoint).toEqual(expect.any(String));
         //expect(idpApiConfig.disconnect_endpoint).toEqual(expect.any(String));
         // expect(idpApiConfig.branding).toEqual(expect.any(Object));
 
       });
 
-      // TODO check branding if exist
+      // TODO check for branding if exist
+      // TODO check for disconnect_endpoit
+      // TODO check for supports_use_other_account
+      // TODO check for account_label
 
     })
 
     // The accounts list endpoint provides the list of accounts
     // the user has at the IDP.
     describe('accounts list endpoint', () => {
+
+      
+      beforeEach(async () => {
+        const wellKnownResponse = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));        
+        const response = await fetch(wellKnownConfig.provider_urls[0], withSecFetchHeader(baseRequestOptions));
+        wellKnownConfig = await wellKnownResponse.json() as IdentityProviderWellKnown;
+        idpApiConfig = await response.json() as IdentityProviderAPIConfig;
+      });
+
       // accounts_endpoint | cookies: yes | client_id: no | origin: no
-      it('should return accounts list', async () => {
+      it('should return a JSON with an accounts list array', async () => {
         const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
         const data = await response.json() as IdentityProviderAccountList;
@@ -118,10 +130,22 @@ describe('Identity Provider HTTP API', () => {
         expect(Array.isArray(data.accounts)).toBe(true);
       });
 
+
+      // This is yet to be clarified by the spec
+      // see: https://github.com/w3c-fedid/FedCM/issues/218
+      // we handle both possible case for now
       it('should return no accounts when no cookie is set', async () => {
         const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withSecFetchHeader(baseRequestOptions));
-        expect(response.status).toBe(401);
+        const data = await response.json() as IdentityProviderAccountList;
+
+        if ( response.status == 200 ){
+          expect(Array.isArray(data.accounts)).toBe(true);
+          expect(data.accounts.length).toBe(0)
+        }else{          
+          expect(response.status).toBe(401);
+        }
+        
       });
 
       it('should return at least one account with valid cookie', async () => {
@@ -132,10 +156,12 @@ describe('Identity Provider HTTP API', () => {
         if (data.accounts.length == 0) {
           throw new Error('No accounts found. Please register a client in the IdP')
         } else {
+          const hasIdentifier = data.accounts[0].name     !== undefined ||
+                                data.accounts[0].username !== undefined ||
+                                data.accounts[0].email    !== undefined ||
+                                data.accounts[0].tel      !== undefined
+          expect(hasIdentifier).toBe(true)
           expect(data.accounts[0].id).toEqual(expect.any(String));
-          expect(data.accounts[0].name).toEqual(expect.any(String));
-          expect(data.accounts[0].email).toEqual(expect.any(String));
-          expect(data.accounts[0].given_name).toEqual(expect.any(String));
           expect(data.accounts[0].picture).toEqual(expect.any(String));
           expect(Array.isArray(data.accounts[0].approved_clients)).toBe(true);
           // expect(Array.isArray(data.accounts[0].login_hints)).toBe(true);

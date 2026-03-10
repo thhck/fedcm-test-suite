@@ -25,7 +25,9 @@ interface IdentityProviderAPIConfig {
 interface IdentityProviderAccount {
   id: string;
   name: string;
+  username: string;
   email: string;
+  tel: string;
   given_name: string;
   picture: string;
   approved_clients: string[];
