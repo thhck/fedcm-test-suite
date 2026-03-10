@@ -1,0 +1,5 @@
+FEDCM_IDP_HOST="https://fedcm-server.liquid.surf"
+FEDCM_CLIENT_ID='https://fedcm-client.liquid.surf/clientid'
+FEDCM_CLIENT_ORIGIN='https://fedcm-client.liquid.surf'
+# run ./scripts/cookie.sh to get the cookie, don't forget the `;` at the end
+FEDCM_IDP_AUTH_COOKIE="css-account=123;" 

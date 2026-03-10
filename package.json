@@ -4,6 +4,7 @@
   },
   "dependencies": {
     "@types/node": "^20.9.0",
+    "dotenv": "^17.3.1",
     "jest": "^29.7.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
