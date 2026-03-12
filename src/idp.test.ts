@@ -8,7 +8,7 @@ console.log(`using clientOrigin:  ${clientOrigin}`)
 console.log(`using clientId:      ${clientId}`)
 console.log(`using auth cookie:   ${authCookie}`)
 
-describe('Identity Provider HTTP API', () => {
+describe(`Identity Provider HTTP API for ${idpHost}`, () => {
   const wellKnownUrl = `${idpHost}/.well-known/web-identity`;
 
   describe('the Well-Known file', () => {
@@ -63,7 +63,6 @@ describe('Identity Provider HTTP API', () => {
     beforeEach(async () => {
       const wellKnownResponse = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
       wellKnownConfig = await wellKnownResponse.json() as IdentityProviderWellKnown;
-
     });
 
     describe('the config file', () => {
@@ -96,15 +95,15 @@ describe('Identity Provider HTTP API', () => {
         expect(idpApiConfig.login_url).toEqual(expect.any(String));
         // not required:
         // expect(idpApiConfig.client_metadata_endpoint).toEqual(expect.any(String));
-        //expect(idpApiConfig.disconnect_endpoint).toEqual(expect.any(String));
+        // expect(idpApiConfig.disconnect_endpoint).toEqual(expect.any(String));
         // expect(idpApiConfig.branding).toEqual(expect.any(Object));
 
       });
-
-      // TODO check for branding if exist
-      // TODO check for disconnect_endpoit
-      // TODO check for supports_use_other_account
-      // TODO check for account_label
+      // 
+      // TODO if present,  check for branding  
+      // TODO if present,  check for disconnect_endpoit
+      // TODO if present,  check for supports_use_other_account
+      // TODO if present,  check for account_label
 
     })
 
@@ -128,13 +127,14 @@ describe('Identity Provider HTTP API', () => {
 
         expect(response.status).toBe(200);
         expect(Array.isArray(data.accounts)).toBe(true);
+        expect(data.accounts.length).toBeGreaterThanOrEqual(1)
       });
 
 
       // This is yet to be clarified by the spec
       // see: https://github.com/w3c-fedid/FedCM/issues/218
       // we handle both possible case for now
-      it('should return no accounts when no cookie is set', async () => {
+      it('should return no accounts or 401 when no cookie is set', async () => {
         const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withSecFetchHeader(baseRequestOptions));
         const data = await response.json() as IdentityProviderAccountList;
