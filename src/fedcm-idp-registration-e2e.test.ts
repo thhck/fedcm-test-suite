@@ -3,12 +3,13 @@ import { test, expect, type CDPSession, type Page, type BrowserContext } from '@
 /**
  * FedCM IdP Registration E2E Test
  *
- * Tests the FedCM IdP registration flow:
- * 1. Login to IdP at localhost:3000
- * 2. Navigate to RP at localhost:6080
- * 3. Click "Register IdP to FedCM" and handle the registration dialog via CDP
- * 4. Click "Log in" and handle FedCM consent via CDP
- * 5. Verify successful authentication
+ * Tests the FedCM sign-in flow on port 6080 with IdP registration:
+ * 1. Navigate to IdP login page at localhost:3000
+ * 2. Click "Register IdP to FedCM" button on IdP page
+ * 3. Login to IdP
+ * 4. Navigate to RP at localhost:6080
+ * 5. Click "Solid-OIDC Login With FedCM" and handle FedCM consent via CDP
+ * 6. Verify successful authentication
  */
 
 const IDP_LOGIN_URL = 'http://localhost:3000/.account/login/password/';
@@ -43,23 +44,24 @@ test.describe('FedCM IdP Registration Flow', () => {
     const context = await browser.newContext();
 
     try {
-      // Step 1: Open IdP login page and authenticate
+      // Step 1: Open IdP login page
       const idpPage = await context.newPage();
       await idpPage.goto(IDP_LOGIN_URL);
-      await idpPage.waitForTimeout(1000);
 
-      // Fill in credentials
+      // Step 2: Click "Register IdP to FedCM" button on IdP page
+      await idpPage.click('button:has-text("Register IdP to FedCM"), #fedcm-registration');
+
+      // Step 3: Fill in credentials and login
       await idpPage.fill('input[name="email"], input[type="email"], #email', TEST_EMAIL);
       await idpPage.fill('input[name="password"], input[type="password"], #password', TEST_PASSWORD);
 
-      await idpPage.waitForTimeout(1000);
       // Click login button
       await idpPage.click('button[type="submit"], input[type="submit"], button:has-text("Log in")');
 
       // Wait for login to complete (page navigation or success indicator)
       await idpPage.waitForLoadState('networkidle');
 
-      // Step 2: Open RP page in a new tab
+      // Step 4: Open RP page in a new tab
       const rpPage = await context.newPage();
 
       // Create CDP session for FedCM automation
@@ -70,68 +72,27 @@ test.describe('FedCM IdP Registration Flow', () => {
         disableRejectionDelay: true,
       });
 
+      // Set up promise to wait for FedCM dialog
+      const loginDialogPromise = new Promise<FedCmDialogEvent>((resolve) => {
+        cdpSession.on('FedCm.dialogShown', (event: FedCmDialogEvent) => {
+          resolve(event);
+        });
+      });
+
       // Navigate to RP
       await rpPage.goto(RP_URL);
 
-      // Step 3: Click "Register IdP to FedCM" button
-      // Set up promise to wait for FedCM IdP registration dialog
-      const registrationDialogPromise = new Promise<FedCmDialogEvent>((resolve) => {
-        cdpSession.once('FedCm.dialogShown', (event: FedCmDialogEvent) => {
-          resolve(event);
-        });
-      });
-
-      await rpPage.click('button:has-text("Register IdP to FedCM"), a:has-text("Register IdP to FedCM"), [data-testid="register-idp"]');
-
-      // Wait for and handle the IdP registration dialog
-      const registrationDialogEvent = await registrationDialogPromise;
-
-      console.log('FedCM IdP Registration Dialog shown:', {
-        dialogId: registrationDialogEvent.dialogId,
-        dialogType: registrationDialogEvent.dialogType,
-        title: registrationDialogEvent.title,
-      });
-
-      // Wait so you can see the FedCM dialog before it's clicked
-      await rpPage.waitForTimeout(1000);
-
-      // Handle the registration dialog - click Continue/Confirm
-      if (registrationDialogEvent.dialogType === 'ConfirmIdpLogin') {
-        await cdpSession.send('FedCm.clickDialogButton', {
-          dialogId: registrationDialogEvent.dialogId,
-          dialogButton: 'ConfirmIdpLoginContinue',
-        });
-      } else {
-        // For other dialog types, try selecting account or clicking continue
-        await cdpSession.send('FedCm.selectAccount', {
-          dialogId: registrationDialogEvent.dialogId,
-          accountIndex: 0,
-        });
-      }
-
-      // Wait for registration to complete
-      await rpPage.waitForTimeout(1000);
-
-      // Step 4: Now click "Log in" button to trigger the actual FedCM login flow
-      const loginDialogPromise = new Promise<FedCmDialogEvent>((resolve) => {
-        cdpSession.once('FedCm.dialogShown', (event: FedCmDialogEvent) => {
-          resolve(event);
-        });
-      });
-
-      await rpPage.click('button:has-text("Log in"), button:has-text("Login"), a:has-text("Log in"), [data-testid="login"]');
+      // Step 5: Click "Solid-OIDC Login With FedCM" button
+      await rpPage.click('button:has-text("Solid-OIDC Login With FedCM"), a:has-text("Solid-OIDC Login With FedCM"), [data-testid="fedcm-login"]');
 
       // Wait for and handle FedCM login dialog
       const loginDialogEvent = await loginDialogPromise;
 
-      console.log('FedCM Login Dialog shown:', {
+      console.log('FedCM Dialog shown:', {
         dialogId: loginDialogEvent.dialogId,
         dialogType: loginDialogEvent.dialogType,
         accounts: loginDialogEvent.accounts?.map(a => a.email),
       });
-
-      // Wait so you can see the FedCM dialog before it's clicked
-      await rpPage.waitForTimeout(1000);
 
       // Handle dialog based on type
       if (loginDialogEvent.dialogType === 'AccountChooser' || loginDialogEvent.dialogType === 'AutoReauthn') {
@@ -148,9 +109,7 @@ test.describe('FedCM IdP Registration Flow', () => {
         });
       }
 
-      // Step 5: Wait and verify login success
-      // Give time for the authentication to complete
-      await rpPage.waitForTimeout(1000);
+      // Step 6: Verify login success
 
       // Check for the expected logged-in message
       await expect(rpPage.locator(`text=${EXPECTED_LOGGED_IN_TEXT}`)).toBeVisible({
