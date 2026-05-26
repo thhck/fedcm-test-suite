@@ -1,6 +1,10 @@
 {
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "playwright test --headed fedcm-e2e",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:idp-registration": "playwright test --headed fedcm-idp-registration-e2e",
+    "check:playwright-version": "echo \"Nix: $(nix eval --raw nixpkgs#playwright-driver.version 2>/dev/null)\" && echo \"npm: $(node -p \"require('@playwright/test/package.json').version\")\""
   },
   "dependencies": {
     "@types/node": "^20.9.0",
@@ -10,7 +14,9 @@
     "typescript": "^5.2.2"
   },
   "devDependencies": {
+    "@playwright/test": "1.58.2",
     "@types/jest": "^29.5.8",
+    "playwright": "1.58.2",
     "ts-jest": "^29.1.1"
   }
 }
