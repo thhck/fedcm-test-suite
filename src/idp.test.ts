@@ -59,6 +59,7 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
   describe('other endpoints', () => {
     let wellKnownConfig: IdentityProviderWellKnown;
     let idpApiConfig: IdentityProviderAPIConfig;
+    let accountsEndpointURL: string;
 
     beforeEach(async () => {
       const wellKnownResponse = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
@@ -117,11 +118,11 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
         const response = await fetch(wellKnownConfig.provider_urls[0], withSecFetchHeader(baseRequestOptions));
         wellKnownConfig = await wellKnownResponse.json() as IdentityProviderWellKnown;
         idpApiConfig = await response.json() as IdentityProviderAPIConfig;
+        accountsEndpointURL = `${idpApiConfig?.accounts_endpoint}`;
       });
 
       // accounts_endpoint | cookies: yes | client_id: no | origin: no
       it('should return a JSON with an accounts list array', async () => {
-        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
         const data = await response.json() as IdentityProviderAccountList;
 
@@ -135,7 +136,6 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
       // see: https://github.com/w3c-fedid/FedCM/issues/218
       // we handle both possible case for now
       it('should return no accounts or 401 when no cookie is set', async () => {
-        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withSecFetchHeader(baseRequestOptions));
         const data = await response.json() as IdentityProviderAccountList;
 
@@ -149,7 +149,6 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
       });
 
       it('should return at least one account with valid cookie', async () => {
-        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
         const data = await response.json() as IdentityProviderAccountList;
 
@@ -169,7 +168,6 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
       });
 
       it('should return 400 when Sec-Fetch-Dest is not set', async () => {
-        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, baseRequestOptions);
 
         expect(response.status).toBe(400);
@@ -198,7 +196,6 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
     describe('identity assertion endpoint', () => {
       // id_assertion_endpoint | cookies: yes | client_id: yes | origin: yes
       it('should return identity assertion', async () => {
-        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const responseAccount = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
         const dataAccount = await responseAccount.json() as IdentityProviderAccountList;
         const accountId = dataAccount.accounts[0].id
