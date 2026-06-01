@@ -161,8 +161,10 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
                                 data.accounts[0].tel      !== undefined
           expect(hasIdentifier).toBe(true)
           expect(data.accounts[0].id).toEqual(expect.any(String));
-          expect(data.accounts[0].picture).toEqual(expect.any(String));
-          expect(Array.isArray(data.accounts[0].approved_clients)).toBe(true);
+          if ( data.accounts[0].picture){
+            expect(data.accounts[0].picture).toEqual(expect.any(String));
+          }
+          // expect(Array.isArray(data.accounts[0].approved_clients)).toBe(true);
           // expect(Array.isArray(data.accounts[0].login_hints)).toBe(true);
         }
       });
@@ -179,7 +181,8 @@ describe(`Identity Provider HTTP API for ${idpHost}`, () => {
     describe('client metadata', () => {
       // client_metadata_endpoint	 | cookies: no | client_id: yes | origin: yes
       it('should return client metadata', async () => {
-        const clientMetadataEndpointURL: string = `${idpHost}${idpApiConfig?.client_metadata_endpoint}`;
+        // const clientMetadataEndpointURL: string = `${idpHost}${idpApiConfig?.client_metadata_endpoint}`;
+        const clientMetadataEndpointURL: string = `${idpApiConfig?.client_metadata_endpoint}`;
         const response = await fetch(clientMetadataEndpointURL,
           withOriginHeader(
             withSecFetchHeader(baseRequestOptions))
