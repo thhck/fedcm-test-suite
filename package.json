@@ -1,6 +1,7 @@
 {
   "scripts": {
     "test": "jest",
+    "test:idp": "jest src/idp.test.ts",
     "test:e2e": "playwright test --headed fedcm-e2e",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:idp-registration": "playwright test --headed fedcm-idp-registration-e2e",
